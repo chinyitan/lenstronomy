@@ -7,6 +7,7 @@ from lenstronomy.LensModel.lens_model_extensions import LensModelExtensions
 from lenstronomy.Data.coord_transforms import Coordinates
 from lenstronomy.Plots import plot_util
 from lenstronomy.Analysis.image_reconstruction import ModelBand
+from scipy import ndimage
 
 __all__ = ['ModelBandPlot']
 
@@ -87,7 +88,7 @@ class ModelBandPlot(ModelBand):
             _, _ = self._critical_curves()
         return self._ra_caustic_list, self._dec_caustic_list
 
-    def data_plot(self, ax, v_min=None, v_max=None, text='Observed',
+    def data_plot(self, ax, v_min=None, v_max=None, rot=False, text='Observed',
                   font_size=15, colorbar_label=r'log$_{10}$ flux', **kwargs):
         """
 
@@ -98,8 +99,18 @@ class ModelBandPlot(ModelBand):
             v_min = self._v_min_default
         if v_max is None:
             v_max = self._v_max_default
-        im = ax.matshow(np.log10(self._data), origin='lower',
+
+        CY_data = self._data
+
+        if rot != False:
+            CY_data = ndimage.rotate(CY_data, rot, reshape=False)
+            CY_data = np.log10(CY_data)
+        else:
+            CY_data = np.log10(CY_data)
+        im = ax.matshow(CY_data, origin='lower',
                         extent=[0, self._frame_size, 0, self._frame_size], cmap=self._cmap, vmin=v_min, vmax=v_max)  # , vmin=0, vmax=2
+
+
 
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
@@ -120,7 +131,7 @@ class ModelBandPlot(ModelBand):
         return ax
 
     def model_plot(self, ax, v_min=None, v_max=None, image_names=False,
-                   colorbar_label=r'log$_{10}$ flux',
+                   colorbar_label=r'log$_{10}$ flux',rot=False,
                    font_size=15, text='Reconstructed', **kwargs):
         """
 
@@ -133,7 +144,15 @@ class ModelBandPlot(ModelBand):
             v_min = self._v_min_default
         if v_max is None:
             v_max = self._v_max_default
-        im = ax.matshow(np.log10(self._model), origin='lower', vmin=v_min, vmax=v_max,
+
+        CY_data = self._model
+        if rot != False:
+            CY_data = ndimage.rotate(CY_data, rot, reshape=False,cval=float("nan"),order=0)
+            CY_data = np.log10(CY_data)
+        else:
+            CY_data = np.log10(CY_data)
+
+        im = ax.matshow(CY_data, origin='lower', vmin=v_min, vmax=v_max,
                         extent=[0, self._frame_size, 0, self._frame_size], cmap=self._cmap)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
@@ -159,7 +178,7 @@ class ModelBandPlot(ModelBand):
 
     def convergence_plot(self, ax, text='Convergence', v_min=None, v_max=None,
                          font_size=15, colorbar_label=r'$\log_{10}\ \kappa$',
-                         **kwargs):
+                         rot=False,**kwargs):
         """
 
         :param ax: matplotib axis instance
@@ -169,7 +188,12 @@ class ModelBandPlot(ModelBand):
             kwargs['cmap'] = self._cmap
 
         kappa_result = util.array2image(self._lensModel.kappa(self._x_grid, self._y_grid, self._kwargs_lens_partial))
-        im = ax.matshow(np.log10(kappa_result), origin='lower',
+
+        CY_convergence = np.log10(kappa_result)
+        if rot != False:
+            CY_convergence = ndimage.rotate(CY_convergence, rot, reshape=False)
+
+        im = ax.matshow(CY_convergence, origin='lower',
                         extent=[0, self._frame_size, 0, self._frame_size],
                         cmap=kwargs['cmap'], vmin=v_min, vmax=v_max)
         ax.get_xaxis().set_visible(False)
@@ -190,7 +214,7 @@ class ModelBandPlot(ModelBand):
 
     def normalized_residual_plot(self, ax, v_min=-6, v_max=6, font_size=15, text="Normalized Residuals",
                                  colorbar_label=r'(f${}_{\rm model}$ - f${}_{\rm data}$)/$\sigma$',
-                                 no_arrow=False, color_bar=True, **kwargs):
+                                 no_arrow=False,rot=False, color_bar=True, **kwargs):
         """
 
         :param ax:
@@ -202,7 +226,12 @@ class ModelBandPlot(ModelBand):
         """
         if not 'cmap' in kwargs:
             kwargs['cmap'] = 'bwr'
-        im = ax.matshow(self._norm_residuals, vmin=v_min, vmax=v_max,
+
+        CY_data = self._norm_residuals
+        if rot != False:
+            CY_data = ndimage.rotate(CY_data, rot, reshape=False)
+
+        im = ax.matshow(CY_data, vmin=v_min, vmax=v_max,
                         extent=[0, self._frame_size, 0, self._frame_size], origin='lower',
                         **kwargs)
         ax.get_xaxis().set_visible(False)
@@ -288,7 +317,7 @@ class ModelBandPlot(ModelBand):
     def source_plot(self, ax, numPix, deltaPix_source, center=None, v_min=None,
                     v_max=None, with_caustics=False, caustic_color='yellow',
                     font_size=15, plot_scale='log',
-                    scale_size=0.1,
+                    scale_size=0.1, rot=False,
                     text="Reconstructed source",
                     colorbar_label=r'log$_{10}$ flux', point_source_position=True,
                     **kwargs):
@@ -319,7 +348,12 @@ class ModelBandPlot(ModelBand):
             source_scale = source
         else:
             raise ValueError('variable plot_scale needs to be "log" or "linear", not %s.' % plot_scale)
-        im = ax.matshow(source_scale, origin='lower', extent=[0, d_s, 0, d_s],
+
+        CY_data = source_scale
+        if rot != False:
+            CY_data = ndimage.rotate(CY_data, rot, reshape=False)
+
+        im = ax.matshow(CY_data, origin='lower', extent=[0, d_s, 0, d_s],
                         cmap=self._cmap, vmin=v_min, vmax=v_max)  # source
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
@@ -400,7 +434,7 @@ class ModelBandPlot(ModelBand):
 
     def magnification_plot(self, ax, v_min=-10, v_max=10,
                            image_name_list=None, font_size=15, no_arrow=False,
-                           text="Magnification model",
+                           rot=False,text="Magnification model",
                            colorbar_label=r"$\det\ (\mathsf{A}^{-1})$",
                            **kwargs):
         """
@@ -416,7 +450,12 @@ class ModelBandPlot(ModelBand):
         if 'alpha' not in kwargs:
             kwargs['alpha'] = 0.5
         mag_result = util.array2image(self._lensModel.magnification(self._x_grid, self._y_grid, self._kwargs_lens_partial))
-        im = ax.matshow(mag_result, origin='lower', extent=[0, self._frame_size, 0, self._frame_size],
+
+        CY_data = mag_result
+        if rot != False:
+            CY_data = ndimage.rotate(CY_data, rot, reshape=False, order=0)
+
+        im = ax.matshow(CY_data, origin='lower', extent=[0, self._frame_size, 0, self._frame_size],
                         vmin=v_min, vmax=v_max, **kwargs)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
